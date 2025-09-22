@@ -1,7 +1,8 @@
 import { Coins, Sparkles } from "lucide-react";
+import { getUserCredits } from "~/actions/users";
 
 export default async function Credits() {
-  const credits = 10
+  const credits = await getUserCredits();
   return (
     <div className="group flex items-center gap-2">
       <div className="flex items-center gap-1.5">
