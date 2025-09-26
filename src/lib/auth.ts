@@ -10,6 +10,7 @@ import {
   usage,
   webhooks,
 } from "@polar-sh/better-auth";
+import { db } from "~/server/db";
 
 const polarClient = new Polar({
   accessToken: env.POLAR_ACCESS_TOKEN,
@@ -40,6 +41,40 @@ export const auth = betterAuth({
           authenticatedUsersOnly: true,
         }),
         portal(),
+        webhooks({
+          secret: env.POLAR_WEBHOOK_SECRET,
+          onOrderPaid: async (order) => {
+            const externalCustomerId = order.data.customer.externalId;
+
+            if (!externalCustomerId) {
+              console.error("No external customer ID found.");
+              throw new Error("No external customer id found.");
+            }
+
+            const productId = order.data.productId;
+
+            let creditsToAdd = 0;
+            switch (productId) {
+              case "dcfa3c93-0a88-4e8a-b16e-37b6226920aa":
+                creditsToAdd = 50;
+                break;
+              case "c2d5855c-3164-48d0-95e1-422dd6a1758f":
+                creditsToAdd = 200;
+                break;
+              case "63836be1-33cc-4c81-9e67-3f95848331d8":
+                creditsToAdd = 400;
+                break;
+            }
+            await db.user.update({
+              where: { id: externalCustomerId },
+              data: {
+                credits: {
+                  increment: creditsToAdd,
+                },
+              },
+            });
+          },
+        }),
         usage(),
         checkout({
           products: [
